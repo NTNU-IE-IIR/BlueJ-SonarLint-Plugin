@@ -30,6 +30,7 @@ public class SonarLintExtension extends Extension {
     blueJ.addPackageListener(packageEventHandler);
     blueJ.addClassListener(new FilesChangeHandler(violationManager, checkerService));
     blueJ.setPreferenceGenerator(new SonarLintProperties(blueJ, checkerService, violationManager));
+    blueJ.setMenuGenerator(new SonarLintMenuBuilder(packageEventHandler));
   }
 
   @Override

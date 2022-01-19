@@ -140,7 +140,7 @@ public class CheckerService implements ICheckerService {
     return this.engine.getAllRuleDetails()
       .stream()
       .map(StandaloneRuleDetails::getKey)
-      .toList();
+      .collect(Collectors.toList());
   }
 
   /**

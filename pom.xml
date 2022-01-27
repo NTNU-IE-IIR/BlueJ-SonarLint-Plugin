@@ -23,8 +23,14 @@
     <dependency>
 	    <groupId>com.github.NTNU-IE-IIR</groupId>
 	    <artifactId>BlueJ-Linting-Core</artifactId>
-	    <version>v0.1.0-BETA.3</version>
+	    <version>v0.1.0-BETA.5</version>
 	  </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>31.0.1-jre</version>
+    </dependency>
 
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>

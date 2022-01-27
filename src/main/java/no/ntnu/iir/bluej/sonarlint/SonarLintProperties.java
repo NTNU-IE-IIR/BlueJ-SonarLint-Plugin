@@ -2,6 +2,8 @@ package no.ntnu.iir.bluej.sonarlint;
 
 import bluej.extensions2.BlueJ;
 import bluej.extensions2.PreferenceGenerator;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,9 +28,9 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
-import javafx.scene.web.WebView;
 import javafx.util.Duration;
 import no.ntnu.iir.bluej.extensions.linting.core.handlers.PackageEventHandler;
+import no.ntnu.iir.bluej.extensions.linting.core.ui.RuleWebView;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
 import no.ntnu.iir.bluej.sonarlint.checker.CheckerService;
 import no.ntnu.iir.bluej.sonarlint.util.SonarLintIconMapper;
@@ -47,7 +49,7 @@ public class SonarLintProperties implements PreferenceGenerator {
   private VBox pane;
   private TextField tableFilterField;
   private TableView<Entry<String, SonarLintRuleDetails>> tableView;
-  private WebView ruleWebView;
+  private RuleWebView ruleWebView;
   private SonarLintIconMapper iconMapper;
 
   // Configuration keys
@@ -97,12 +99,7 @@ public class SonarLintProperties implements PreferenceGenerator {
         this.tableFilterField
     );
 
-    this.ruleWebView = new WebView();
-    this.ruleWebView.setPrefWidth(this.pane.getWidth());
-    this.ruleWebView.getEngine().setUserStyleSheetLocation(
-        "data:,body { font: 12px Segoe UI, Arial; }"
-    );
-
+    this.ruleWebView = new RuleWebView();
     this.tableView = new TableView<>();
 
 
@@ -176,16 +173,14 @@ public class SonarLintProperties implements PreferenceGenerator {
     this.tableView.getColumns().add(ruleNameColumn);
     this.tableView.getFocusModel().focusedItemProperty().addListener((obs, oldVal, newVal) -> {
       if (newVal != null) {
-        this.ruleWebView.getEngine().loadContent(newVal.getValue().getHtmlDescription());
+        String description = newVal.getValue().getHtmlDescription();
+        this.ruleWebView.setContent(description);
       }
     });
 
-    this.tableView.prefWidthProperty().bind(this.pane.widthProperty());
-    this.ruleWebView.prefWidthProperty().bind(this.pane.widthProperty());
-
     this.pane.getChildren().add(filterHBox);
     this.pane.getChildren().add(this.tableView);
-    this.pane.getChildren().add(this.ruleWebView);
+    this.pane.getChildren().add(this.ruleWebView.getWebView());
     this.pane.setPrefWidth(600);
   }
 

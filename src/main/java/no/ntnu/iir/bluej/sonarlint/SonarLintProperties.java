@@ -2,8 +2,6 @@ package no.ntnu.iir.bluej.sonarlint;
 
 import bluej.extensions2.BlueJ;
 import bluej.extensions2.PreferenceGenerator;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +14,7 @@ import java.util.stream.Collectors;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -27,6 +26,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import no.ntnu.iir.bluej.extensions.linting.core.handlers.PackageEventHandler;
@@ -51,6 +51,7 @@ public class SonarLintProperties implements PreferenceGenerator {
   private TableView<Entry<String, SonarLintRuleDetails>> tableView;
   private RuleWebView ruleWebView;
   private SonarLintIconMapper iconMapper;
+  private ComboBox<FilterType> filterTypeComboBox;
 
   // Configuration keys
   private static final String SONARLINT_DISABLED_RULES = "SonarLint.DisabledRules";
@@ -86,15 +87,32 @@ public class SonarLintProperties implements PreferenceGenerator {
     this.pane = new VBox();
     this.pane.setSpacing(10);
 
-    HBox filterHBox = new HBox();
-    filterHBox.setAlignment(Pos.BASELINE_RIGHT);
+    // set up filtertype dropdown
+    this.filterTypeComboBox = new ComboBox<>();
+    this.filterTypeComboBox.setItems(FXCollections.observableArrayList(FilterType.values()));
+    this.filterTypeComboBox.valueProperty().addListener((obs, oldValue, newValue) -> 
+        this.filterDisplayedRules(this.tableFilterField.getText(), newValue)
+    );
+
     this.tableFilterField = new TextField();
-    PauseTransition pause = new PauseTransition(Duration.seconds(1));
+    // debounce filtering, only filter after 1s of inactivity
+    PauseTransition pause = new PauseTransition(Duration.seconds(1)); 
     this.tableFilterField.textProperty().addListener((obs, oldValue, newValue) -> {
-      pause.setOnFinished(event -> this.filterDisplayedRules(newValue));
+      pause.setOnFinished(event -> 
+          this.filterDisplayedRules(newValue, this.filterTypeComboBox.getValue())
+      );
       pause.playFromStart();
     });
+
+    Region spacer = new Region();
+    spacer.setMinWidth(10);
+
+    HBox filterHBox = new HBox();
+    filterHBox.setAlignment(Pos.BASELINE_RIGHT);
     filterHBox.getChildren().addAll(
+        new Label("View: "),
+        this.filterTypeComboBox,
+        spacer,    
         new Label("Filter rules: "),
         this.tableFilterField
     );
@@ -189,13 +207,29 @@ public class SonarLintProperties implements PreferenceGenerator {
    * 
    * @param filterString the String to use for matching
    */
-  private void filterDisplayedRules(String filterString) {
+  private void filterDisplayedRules(String filterString, FilterType filterType) {
     Pattern regexPattern = Pattern.compile(Pattern.quote(filterString), Pattern.CASE_INSENSITIVE);
     Set<Entry<String, SonarLintRuleDetails>> filteredRules = new HashSet<>();
     this.ruleDetailsMap.entrySet().forEach(entry -> {
       String fieldValue = entry.getValue().getSearchableString();
       if (regexPattern.matcher(fieldValue).find()) {
-        filteredRules.add(entry);
+        switch (filterType) {
+          case DISABLED:
+            if (!entry.getValue().isEnabled()) {
+              filteredRules.add(entry);
+            }
+            break;
+          
+          case ENABLED:
+            if (entry.getValue().isEnabled()) {
+              filteredRules.add(entry);
+            }
+            break;
+          case ALL:
+          default:
+            filteredRules.add(entry);
+            break;
+        }
       }
     });
     this.tableView.getItems().setAll(filteredRules);
@@ -243,6 +277,7 @@ public class SonarLintProperties implements PreferenceGenerator {
     this.checkerService.setDisabledRules(this.disabledRules);
     this.tableView.getItems().setAll(this.ruleDetailsMap.entrySet());
 
+    this.filterTypeComboBox.setValue(FilterType.ALL);
     this.tableFilterField.clear();
     violationManager.clearViolations();
     PackageEventHandler.checkAllPackagesOpen(violationManager, checkerService);

@@ -1,4 +1,4 @@
-package no.ntnu.iir.bluej.sonarlint.checker;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint.checker;
 
 import java.util.logging.Logger;
 import org.sonarsource.sonarlint.core.client.api.common.LogOutput;

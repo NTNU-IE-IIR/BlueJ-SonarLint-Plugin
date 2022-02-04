@@ -1,4 +1,4 @@
-package no.ntnu.iir.bluej.sonarlint;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint;
 
 /**
  * Represents filter types for filtering rules.

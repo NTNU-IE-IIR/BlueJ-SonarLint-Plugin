@@ -1,4 +1,4 @@
-package no.ntnu.iir.bluej.sonarlint;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint;
 
 import bluej.extensions2.BlueJ;
 import bluej.extensions2.Extension;
@@ -8,9 +8,9 @@ import no.ntnu.iir.bluej.extensions.linting.core.handlers.PackageEventHandler;
 import no.ntnu.iir.bluej.extensions.linting.core.ui.AuditWindow;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.RuleDefinition;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
-import no.ntnu.iir.bluej.sonarlint.checker.CheckerListener;
-import no.ntnu.iir.bluej.sonarlint.checker.CheckerService;
-import no.ntnu.iir.bluej.sonarlint.util.SonarLintIconMapper;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.checker.CheckerListener;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.checker.CheckerService;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.SonarLintIconMapper;
 
 public class SonarLintExtension extends Extension {
   

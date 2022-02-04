@@ -1,4 +1,4 @@
-package no.ntnu.iir.bluej.sonarlint.checker;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint.checker;
 
 import java.io.File;
 import java.io.FileInputStream;

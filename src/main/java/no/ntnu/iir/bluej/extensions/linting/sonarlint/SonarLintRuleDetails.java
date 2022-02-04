@@ -1,6 +1,6 @@
-package no.ntnu.iir.bluej.sonarlint;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint;
 
-import no.ntnu.iir.bluej.sonarlint.util.StringUtils;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.StringUtils;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneRuleDetails;
 
 /**

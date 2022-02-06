@@ -6,7 +6,7 @@
 
   <groupId>no.ntnu.iir.bluej.extensions.linting.sonarlint</groupId>
   <artifactId>sonarlint4bluej</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0-RC</version>
 
   <name>sonarlint4bluej</name>
   <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>

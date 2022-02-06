@@ -23,7 +23,7 @@
     <dependency>
 	    <groupId>com.github.NTNU-IE-IIR</groupId>
 	    <artifactId>BlueJ-Linting-Core</artifactId>
-	    <version>v0.1.0-BETA.5</version>
+	    <version>v1.0.0-RC</version>
 	  </dependency>
 
     <dependency>

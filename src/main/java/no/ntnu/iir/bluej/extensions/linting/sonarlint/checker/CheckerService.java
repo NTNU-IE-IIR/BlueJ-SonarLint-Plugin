@@ -1,4 +1,4 @@
-package no.ntnu.iir.bluej.sonarlint.checker;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint.checker;
 
 import bluej.extensions2.BPackage;
 import java.io.File;
@@ -61,26 +61,28 @@ public class CheckerService implements ICheckerService {
    * Runs checks on a list of files.
    */
   public void checkFiles(List<File> filesToCheck, String charset) {
-    try {
-      this.violationManager.syncBlueClassMap();
-      List<ClientInputFile> clientInputFiles = filesToCheck
-          .stream()
-          .map(ClientInputFileAdapter::new)
-          .collect(Collectors.toList());
+    if (enabled) {
+      try {
+        this.violationManager.syncBlueClassMap();
+        List<ClientInputFile> clientInputFiles = filesToCheck
+            .stream()
+            .map(ClientInputFileAdapter::new)
+            .collect(Collectors.toList());
+    
+        Path baseDir = this.findBaseDirPath(filesToCheck.get(0));
   
-      Path baseDir = this.findBaseDirPath(filesToCheck.get(0));
-
-      if (baseDir != null) {
-        StandaloneAnalysisConfiguration configuration = StandaloneAnalysisConfiguration.builder()
-            .addInputFiles(clientInputFiles)
-            .setBaseDir(baseDir)
-            .addExcludedRules(disabledRuleKeys)
-            .build();
-        
-        this.engine.analyze(configuration, this.issueListener, this.logOutput, null);
+        if (baseDir != null) {
+          StandaloneAnalysisConfiguration configuration = StandaloneAnalysisConfiguration.builder()
+              .addInputFiles(clientInputFiles)
+              .setBaseDir(baseDir)
+              .addExcludedRules(disabledRuleKeys)
+              .build();
+          
+          this.engine.analyze(configuration, this.issueListener, this.logOutput, null);
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
       }
-    } catch (Exception e) {
-      e.printStackTrace();
     }
   }
 
@@ -88,19 +90,21 @@ public class CheckerService implements ICheckerService {
    * Runs checks on a single file.
    */
   public void checkFile(File fileToCheck, String charset) {
-    try {
-      this.violationManager.syncBlueClassMap();
-      Path baseDir = this.findBaseDirPath(fileToCheck);
-      if (baseDir != null) {
-        StandaloneAnalysisConfiguration configuration = StandaloneAnalysisConfiguration.builder()
-            .addInputFile(new ClientInputFileAdapter(fileToCheck))
-            .setBaseDir(baseDir)
-            .build();
-    
-        this.engine.analyze(configuration, this.issueListener, this.logOutput, null);
+    if (enabled) {
+      try {
+        this.violationManager.syncBlueClassMap();
+        Path baseDir = this.findBaseDirPath(fileToCheck);
+        if (baseDir != null) {
+          StandaloneAnalysisConfiguration configuration = StandaloneAnalysisConfiguration.builder()
+              .addInputFile(new ClientInputFileAdapter(fileToCheck))
+              .setBaseDir(baseDir)
+              .build();
+      
+          this.engine.analyze(configuration, this.issueListener, this.logOutput, null);
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
       }
-    } catch (Exception e) {
-      e.printStackTrace();
     }
   }
 

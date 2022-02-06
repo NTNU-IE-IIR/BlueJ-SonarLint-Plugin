@@ -4,9 +4,9 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>no.ntnu.iir.bluej.sonarlint</groupId>
+  <groupId>no.ntnu.iir.bluej.extensions.linting.sonarlint</groupId>
   <artifactId>sonarlint4bluej</artifactId>
-  <version>0.1.0-BETA</version>
+  <version>0.1.0-RC</version>
 
   <name>sonarlint4bluej</name>
   <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
@@ -23,8 +23,14 @@
     <dependency>
 	    <groupId>com.github.NTNU-IE-IIR</groupId>
 	    <artifactId>BlueJ-Linting-Core</artifactId>
-	    <version>v0.1.0-BETA.3</version>
+	    <version>v1.0.0-RC</version>
 	  </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>31.0.1-jre</version>
+    </dependency>
 
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
@@ -70,7 +76,7 @@
       <groupId>bluej</groupId>
       <artifactId>bluejext2</artifactId>
       <type>jar</type>
-      <version>5.0.2</version>
+      <version>3.2</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -104,7 +110,7 @@
             <archive>
               <manifest>
                 <addClasspath>true</addClasspath>
-                <mainClass>no.ntnu.iir.bluej.sonarlint.SonarLintExtension</mainClass>
+                <mainClass>no.ntnu.iir.bluej.extensions.linting.sonarlint.SonarLintExtension</mainClass>
                 <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                 <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
               </manifest>

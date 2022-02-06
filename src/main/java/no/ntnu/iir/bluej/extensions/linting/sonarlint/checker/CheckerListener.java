@@ -1,4 +1,4 @@
-package no.ntnu.iir.bluej.sonarlint.checker;
+package no.ntnu.iir.bluej.extensions.linting.sonarlint.checker;
 
 import bluej.extensions2.BClass;
 import bluej.extensions2.editor.TextLocation;
@@ -10,7 +10,7 @@ import java.util.Optional;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.RuleDefinition;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.Violation;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
-import no.ntnu.iir.bluej.sonarlint.util.StringUtils;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.StringUtils;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.ClientInputFile;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.Issue;
 import org.sonarsource.sonarlint.core.client.api.common.analysis.IssueListener;

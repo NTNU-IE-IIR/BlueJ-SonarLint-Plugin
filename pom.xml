@@ -6,7 +6,7 @@
 
   <groupId>no.ntnu.iir.bluej.extensions.linting.sonarlint</groupId>
   <artifactId>sonarlint4bluej</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0-RC</version>
 
   <name>sonarlint4bluej</name>
   <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
@@ -26,11 +26,11 @@
 	    <version>v1.0.0-RC</version>
 	  </dependency>
 
-    <dependency>
+    <!--dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>31.0.1-jre</version>
-    </dependency>
+    </dependency-->
 
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
@@ -38,18 +38,18 @@
       <version>${sonarlint-core.version}</version>
     </dependency>
 
-    <dependency>
+    <!--dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
       <artifactId>sonarlint-plugin-api</artifactId>
       <version>${sonarlint-core.version}</version>
-    </dependency>
+    </dependency-->
 
-    <dependency>
+    <!--dependency>
       <groupId>org.sonarsource.java</groupId>
       <artifactId>sonar-java-plugin</artifactId>
       <version>${sonarlint-java-plugin.version}</version>
       <scope>provided</scope>
-    </dependency>
+    </dependency-->
 
     <dependency>
       <groupId>junit</groupId>
@@ -58,12 +58,12 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
+    <!--dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
       <version>18-ea+4</version>
       <scope>provided</scope>
-    </dependency>
+    </dependency-->
 
     <dependency>
       <groupId>org.openjfx</groupId>
@@ -206,7 +206,7 @@
     <repository>
       <id>jitpack.io</id>
       <url>https://jitpack.io</url>
-		</repository>
+	</repository>
 
     <repository>
       <id>local_repository</id>

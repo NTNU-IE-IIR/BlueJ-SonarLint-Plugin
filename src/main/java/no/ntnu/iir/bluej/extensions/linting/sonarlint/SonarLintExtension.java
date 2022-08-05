@@ -16,6 +16,7 @@ public class SonarLintExtension extends Extension {
   
   @Override
   public void startup(BlueJ blueJ) {
+    System.out.println("SonarLintExtension.startup() called...");
     RuleDefinition.setIconMapper(new SonarLintIconMapper());
     ViolationManager violationManager = new ViolationManager();
     CheckerService checkerService = new CheckerService(violationManager);
@@ -32,6 +33,7 @@ public class SonarLintExtension extends Extension {
     blueJ.addClassListener(new FilesChangeHandler(violationManager, checkerService));
     blueJ.setPreferenceGenerator(new SonarLintProperties(blueJ, checkerService, violationManager));
     blueJ.setMenuGenerator(new SonarLintMenuBuilder(packageEventHandler));
+    System.out.println("SonarLintExtension.startup() finished...");
   }
 
   @Override

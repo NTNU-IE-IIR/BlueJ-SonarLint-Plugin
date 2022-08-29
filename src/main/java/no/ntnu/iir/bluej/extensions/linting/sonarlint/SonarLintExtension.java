@@ -16,6 +16,12 @@ public class SonarLintExtension extends Extension {
   
   @Override
   public void startup(BlueJ blueJ) {
+    System.out.println("SonarLintExtension.startup() called...");
+    System.out.println("BlueJ Extension Version (bluejext2.jar): "
+        + Extension.getExtensionsAPIVersionMajor()
+        + "."
+        + Extension.getExtensionsAPIVersionMinor());
+
     RuleDefinition.setIconMapper(new SonarLintIconMapper());
     ViolationManager violationManager = new ViolationManager();
     CheckerService checkerService = new CheckerService(violationManager);
@@ -32,13 +38,15 @@ public class SonarLintExtension extends Extension {
     blueJ.addClassListener(new FilesChangeHandler(violationManager, checkerService));
     blueJ.setPreferenceGenerator(new SonarLintProperties(blueJ, checkerService, violationManager));
     blueJ.setMenuGenerator(new SonarLintMenuBuilder(packageEventHandler));
+    System.out.println("SonarLintExtension.startup() finished...");
   }
 
   @Override
   public boolean isCompatible() {
+    // The SonarLint extension requires BlueJ Extension API 3.2 or later
     int versionMajor = Extension.getExtensionsAPIVersionMajor();
     int versionMinor = Extension.getExtensionsAPIVersionMinor();
-    return (versionMajor == 3 && versionMinor == 2);
+    return (versionMajor == 3 && versionMinor >= 2);
   }
 
   @Override

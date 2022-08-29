@@ -6,49 +6,41 @@
 
   <groupId>no.ntnu.iir.bluej.extensions.linting.sonarlint</groupId>
   <artifactId>sonarlint4bluej</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
 
   <name>sonarlint4bluej</name>
   <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
 
+  <!--
+  BlueJ 5.0.3 uses the following versions of Java and JavaFX:
+      Java: 11.0.14.1
+      JavaFX: 11.0.13.1+1
+
+  Note on <scope>provided</scope> in the dependency section:
+         We use this scope to mark dependencies that should be provided at runtime by JDK or a container.
+         (https://www.baeldung.com/maven-dependency-scopes)
+  -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <sonarlint-core.version>7.0.0.37656</sonarlint-core.version>
     <sonarlint-java-plugin.version>7.6.0.28201</sonarlint-java-plugin.version>
+    <!-- Use a JavaFX version closest to the version used by BlueJ (11.0.13.1 is not available on the Maven repo) -->
+    <javafx.version>12</javafx.version>
   </properties>
 
   <dependencies>
     <dependency>
 	    <groupId>com.github.NTNU-IE-IIR</groupId>
-	    <artifactId>BlueJ-Linting-Core</artifactId>
-	    <version>v1.0.0-RC</version>
+	    <artifactId>bluej-linting-core</artifactId>
+	    <version>1.0.0</version>
 	  </dependency>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>31.0.1-jre</version>
-    </dependency>
 
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
       <artifactId>sonarlint-core</artifactId>
       <version>${sonarlint-core.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-plugin-api</artifactId>
-      <version>${sonarlint-core.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.sonarsource.java</groupId>
-      <artifactId>sonar-java-plugin</artifactId>
-      <version>${sonarlint-java-plugin.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -60,15 +52,8 @@
 
     <dependency>
       <groupId>org.openjfx</groupId>
-      <artifactId>javafx-controls</artifactId>
-      <version>18-ea+4</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.openjfx</groupId>
       <artifactId>javafx-web</artifactId>
-      <version>18-ea+7</version>
+      <version>${javafx.version}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -76,7 +61,7 @@
       <groupId>bluej</groupId>
       <artifactId>bluejext2</artifactId>
       <type>jar</type>
-      <version>3.2</version>
+      <version>3.3</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -167,6 +152,10 @@
       </plugin>
       
       <plugin>
+        <!--
+          This plugin provides the capability to package the artifact in an uber-jar,
+          including its dependencies and to shade - i.e. rename - the packages of some of the dependencies.
+        -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.1.0</version>
@@ -203,11 +192,17 @@
   </build>
 
   <repositories>
+    <!--
+      To get a Git project into your build
+    -->
     <repository>
       <id>jitpack.io</id>
       <url>https://jitpack.io</url>
-		</repository>
+	</repository>
 
+    <!--
+      To get libraries stored in the lib-folder into the build.
+    -->
     <repository>
       <id>local_repository</id>
       <name>Repository in the projects lib directory</name>

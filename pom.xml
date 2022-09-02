@@ -12,6 +12,15 @@
   <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
 
   <!--
+  Link the project to the SCM (GitHub) to enable the use of the Maven Release plugin
+  -->
+  <scm>
+    <connection>scm:git:https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin.git</connection>
+    <developerConnection>scm:git:https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin.git</developerConnection>
+    <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
+  </scm>
+
+  <!--
   BlueJ 5.0.3 uses the following versions of Java and JavaFX:
       Java: 11.0.14.1
       JavaFX: 11.0.13.1+1

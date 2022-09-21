@@ -49,14 +49,14 @@ mvn release:prepare -DdryRun=true
 
 3. Relies on the output of the Prepare step - the `release.properties`.
 
-
+To avoid the deploy-step to be executed (which would try to deploy the artifact to a server for distribution), add `-Darguments="-Dmaven.deploy.skip=true"`
 ```
-mvn release:prepare
+mvn release:perform -Darguments="-Dmaven.deploy.skip=true"
 ```
 
 ### Cleaning, Preparing and Performing the release
 
-
+You can perform all 3 steps in one go:
 ```
-mvn release:clean release:prepare release:perform -DreleaseVersion=0.1 -DdevelopmentVersion=0.2-SNAPSHOT
+mvn release:clean release:prepare release:perform -DreleaseVersion=0.1 -DdevelopmentVersion=0.2-SNAPSHOT -Darguments="-Dmaven.deploy.skip=true"
 ```

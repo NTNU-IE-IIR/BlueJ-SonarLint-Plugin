@@ -92,6 +92,11 @@ public class CheckerService implements ICheckerService {
   public void checkFile(File fileToCheck, String charset) {
     if (enabled) {
       try {
+        // When the engine analyzes a file, 
+        // it does not give us a complete list of violations for the file.
+        // Due to this, we have to clear the violations before each check.
+        this.violationManager.setViolations(fileToCheck.getPath(), new ArrayList<>());
+
         this.violationManager.syncBlueClassMap();
         Path baseDir = this.findBaseDirPath(fileToCheck);
         if (baseDir != null) {

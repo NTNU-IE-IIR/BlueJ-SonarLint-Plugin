@@ -1,54 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>no.ntnu.iir.bluej.extensions.linting.sonarlint</groupId>
   <artifactId>sonarlint4bluej</artifactId>
-  <version>0.1.0-RC</version>
+  <version>1.3-SNAPSHOT</version>
 
   <name>sonarlint4bluej</name>
   <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
 
+  <!--
+  Link the project to the SCM (GitHub) to enable the use of the Maven Release plugin
+  -->
+  <scm>
+    <connection>scm:git:${project.scm.url}</connection>
+    <developerConnection>scm:git:${project.scm.url}</developerConnection>
+    <url>git@github.com:NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <!--
+  BlueJ 5.0.3 uses the following versions of Java and JavaFX:
+      Java: 17.0.4
+      JavaFX: 17.0.3+2
+
+  Note on <scope>provided</scope> in the dependency section:
+         We use this scope to mark dependencies that should be provided at runtime by JDK or a container.
+         (https://www.baeldung.com/maven-dependency-scopes)
+  -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <sonarlint-core.version>7.0.0.37656</sonarlint-core.version>
     <sonarlint-java-plugin.version>7.6.0.28201</sonarlint-java-plugin.version>
+    <!-- Use a JavaFX version closest to the version used by BlueJ (11.0.13.1 is not available on the Maven repo) -->
+    <javafx.version>17.0.2</javafx.version>
   </properties>
 
   <dependencies>
     <dependency>
 	    <groupId>com.github.NTNU-IE-IIR</groupId>
-	    <artifactId>BlueJ-Linting-Core</artifactId>
-	    <version>v1.0.0-RC</version>
+	    <artifactId>bluej-linting-core</artifactId>
+	    <version>1.0.0</version>
 	  </dependency>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>31.0.1-jre</version>
-    </dependency>
 
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
       <artifactId>sonarlint-core</artifactId>
       <version>${sonarlint-core.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-plugin-api</artifactId>
-      <version>${sonarlint-core.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.sonarsource.java</groupId>
-      <artifactId>sonar-java-plugin</artifactId>
-      <version>${sonarlint-java-plugin.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -60,15 +61,8 @@
 
     <dependency>
       <groupId>org.openjfx</groupId>
-      <artifactId>javafx-controls</artifactId>
-      <version>18-ea+4</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.openjfx</groupId>
       <artifactId>javafx-web</artifactId>
-      <version>18-ea+7</version>
+      <version>${javafx.version}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -76,32 +70,14 @@
       <groupId>bluej</groupId>
       <artifactId>bluejext2</artifactId>
       <type>jar</type>
-      <version>3.2</version>
+      <version>3.3</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+    <pluginManagement>
       <plugins>
-        <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
-        <plugin>
-          <artifactId>maven-clean-plugin</artifactId>
-          <version>3.1.0</version>
-        </plugin>
-        <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
-        <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.0</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
-        </plugin>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
@@ -117,27 +93,19 @@
             </archive>
           </configuration>
         </plugin>
-        <plugin>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>2.5.2</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.8.2</version>
-        </plugin>
-        <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
-        <plugin>
-          <artifactId>maven-site-plugin</artifactId>
-          <version>3.7.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.0.0</version>
-        </plugin>
       </plugins>
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+        <configuration>
+          <scmCommentPrefix>[ci skip]</scmCommentPrefix>
+          <tagNameFormat>v@{project.version}</tagNameFormat>
+        </configuration>
+      </plugin>
+      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -167,6 +135,10 @@
       </plugin>
       
       <plugin>
+        <!--
+          This plugin provides the capability to package the artifact in an uber-jar,
+          including its dependencies and to shade - i.e. rename - the packages of some of the dependencies.
+        -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.1.0</version>
@@ -203,11 +175,17 @@
   </build>
 
   <repositories>
+    <!--
+      To get a Git project into your build
+    -->
     <repository>
       <id>jitpack.io</id>
       <url>https://jitpack.io</url>
-		</repository>
+	</repository>
 
+    <!--
+      To get libraries stored in the lib-folder into the build.
+    -->
     <repository>
       <id>local_repository</id>
       <name>Repository in the projects lib directory</name>

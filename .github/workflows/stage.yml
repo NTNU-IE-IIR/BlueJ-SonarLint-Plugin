@@ -1,0 +1,64 @@
+name: Stage release with manually assigned versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release version'
+        required: true 
+        type: string
+      nextDevelopmentVersion:
+        description: 'Next development version'
+        required: true 
+        type: string
+
+jobs:
+  perform-release:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: 'develop' 
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Set GitHub Actions as commit author
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Perform Maven Release
+        run: 
+          mvn release:clean release:prepare release:perform 
+            -DreleaseVersion=${{ inputs.releaseVersion }} 
+            -DdevelopmentVersion=${{ inputs.nextDevelopmentVersion }} 
+            -Darguments="-Dmaven.javadoc.skip=true -Dmaven.deploy.skip=true"
+
+      - name: Trigger publish workflow
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publish.yml',
+              ref: 'main',
+              inputs: {
+                tag_ref: 'v${{ inputs.releaseVersion }}',
+              },
+            })

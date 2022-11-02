@@ -8,12 +8,12 @@ public class CheckerLogOutput implements LogOutput {
 
   @Override
   public void log(String formattedMessage, Level logLevel) {
-    if (logLevel.equals(Level.WARN)) {
-      LOGGER.warning(formattedMessage);
-    } else if (logLevel.equals(Level.ERROR)) {
-      LOGGER.severe(formattedMessage);
-    } else if (logLevel.equals(Level.TRACE)) {
-      LOGGER.warning(formattedMessage);
+    switch (logLevel) {
+      case WARN, TRACE -> LOGGER.warning(formattedMessage);
+      case ERROR -> LOGGER.severe(formattedMessage);
+      default -> {
+        // do not log anything for other levels
+      }
     }
   }
 }

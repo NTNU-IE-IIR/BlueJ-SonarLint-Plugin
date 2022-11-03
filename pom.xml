@@ -21,7 +21,7 @@
   </scm>
 
   <!--
-  BlueJ 5.0.3 uses the following versions of Java and JavaFX:
+  BlueJ 5.1.0 uses the following versions of Java and JavaFX:
       Java: 17.0.4
       JavaFX: 17.0.3+2
 
@@ -35,7 +35,7 @@
     <maven.compiler.target>17</maven.compiler.target>
     <sonarlint-core.version>7.0.0.37656</sonarlint-core.version>
     <sonarlint-java-plugin.version>7.6.0.28201</sonarlint-java-plugin.version>
-    <!-- Use a JavaFX version closest to the version used by BlueJ (11.0.13.1 is not available on the Maven repo) -->
+    <!-- Use a JavaFX version closest to the version used by BlueJ (17.0.3+2 is not available on the Maven repo) -->
     <javafx.version>17.0.2</javafx.version>
   </properties>
 

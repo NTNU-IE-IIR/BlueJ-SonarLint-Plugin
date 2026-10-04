@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 import org.sonarsource.sonarlint.core.rpc.client.ConfigScopeNotFoundException;
 import org.sonarsource.sonarlint.core.rpc.client.SonarLintCancelChecker;
 import org.sonarsource.sonarlint.core.rpc.client.SonarLintRpcClientDelegate;
@@ -46,8 +45,6 @@ import org.sonarsource.sonarlint.core.rpc.protocol.common.UsernamePasswordDto;
  * so no files are listed up front.
  */
 public class BackendClient implements SonarLintRpcClientDelegate {
-  private static final Logger LOGGER = Logger.getLogger(BackendClient.class.getName());
-
   private final Map<String, Path> baseDirsByConfigScopeId = new ConcurrentHashMap<>();
 
   /**
@@ -74,15 +71,19 @@ public class BackendClient implements SonarLintRpcClientDelegate {
     return List.of();
   }
 
+  /**
+   * Prints warnings and errors from the backend to standard error, which BlueJ writes to its
+   * debug log (java.util.logging output does not end up there).
+   */
   @Override
   public void log(LogParams params) {
-    String message = params.getMessage();
-    if (params.getStackTrace() != null) {
-      message += System.lineSeparator() + params.getStackTrace();
-    }
     switch (params.getLevel()) {
-      case ERROR -> LOGGER.severe(message);
-      case WARN -> LOGGER.warning(message);
+      case ERROR, WARN -> {
+        System.err.println("SonarLint " + params.getLevel() + ": " + params.getMessage());
+        if (params.getStackTrace() != null) {
+          System.err.println(params.getStackTrace());
+        }
+      }
       default -> {
         // do not log anything for other levels
       }
@@ -91,7 +92,7 @@ public class BackendClient implements SonarLintRpcClientDelegate {
 
   @Override
   public void showMessage(MessageType type, String text) {
-    LOGGER.info(text);
+    System.err.println("SonarLint " + type + ": " + text);
   }
 
   @Override

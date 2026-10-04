@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -63,6 +64,7 @@ public class SonarLintBackend {
   private final SonarLintRpcServer server;
   private final Path workDir;
   private final Set<String> configScopeIds;
+  private final Map<String, String> analysisProperties;
 
   /**
    * Starts and initializes a new SonarLint backend.
@@ -72,7 +74,13 @@ public class SonarLintBackend {
    */
   public SonarLintBackend(String productVersion) throws IOException {
     this.workDir = Files.createTempDirectory("sonarlint4bluej");
+    // BlueJ does not always terminate extensions when it quits, so also clean up on exit
+    Path dirToDelete = this.workDir;
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteRecursively(dirToDelete)));
     this.configScopeIds = ConcurrentHashMap.newKeySet();
+    this.analysisProperties = this.createJdkHomeIfMissing()
+        .map(jdkHome -> Map.of("sonar.java.jdkHome", jdkHome.toString()))
+        .orElse(Map.of());
     this.client = new BackendClient();
 
     Path pluginPath = this.extractPlugin();
@@ -180,7 +188,7 @@ public class SonarLintBackend {
 
     List<URI> fileUris = clientFiles.stream().map(ClientFileDto::getUri).toList();
     AnalyzeFilesAndTrackParams params = new AnalyzeFilesAndTrackParams(
-        configScopeId, UUID.randomUUID(), fileUris, Map.of(), false
+        configScopeId, UUID.randomUUID(), fileUris, this.analysisProperties, false
     );
     return await(
         this.server.getAnalysisService().analyzeFilesAndTrack(params),
@@ -260,6 +268,49 @@ public class SonarLintBackend {
   /**
    * Copies the bundled analyzer out of the extension jar, as the backend loads plugins from files.
    */
+  /**
+   * Creates a JDK home for the Java analyzer, if the running Java runtime can not be used as one.
+   * The analyzer's parser reads the JDK version from the "release" file in the JDK home, and
+   * fails to parse any file without it. The Java runtime bundled with BlueJ has no such file,
+   * so a JDK home is put together in the working directory: a "release" file, and links to the
+   * class library ("lib/modules") of the running runtime and the file system to read it with.
+   *
+   * @return the created JDK home, or empty if the running runtime has a "release" file
+   */
+  private Optional<Path> createJdkHomeIfMissing() throws IOException {
+    Path javaHome = Path.of(System.getProperty("java.home"));
+    if (Files.exists(javaHome.resolve("release"))) {
+      return Optional.empty();
+    }
+
+    Path jdkHome = this.workDir.resolve("jdk");
+    Files.createDirectories(jdkHome.resolve("lib"));
+    Files.writeString(
+        jdkHome.resolve("release"),
+        "JAVA_VERSION=\"" + System.getProperty("java.version") + "\"\n"
+    );
+    for (String file : List.of("lib/modules", "lib/jrt-fs.jar")) {
+      linkOrCopy(javaHome.resolve(file), jdkHome.resolve(file));
+    }
+    return Optional.of(jdkHome);
+  }
+
+  /**
+   * Links to a file, falling back to a hard link and then a copy where symbolic links
+   * are not permitted (e.g. on Windows without developer mode).
+   */
+  private static void linkOrCopy(Path target, Path link) throws IOException {
+    try {
+      Files.createSymbolicLink(link, target);
+    } catch (IOException | UnsupportedOperationException e) {
+      try {
+        Files.createLink(link, target);
+      } catch (IOException | UnsupportedOperationException e2) {
+        Files.copy(target, link, StandardCopyOption.REPLACE_EXISTING);
+      }
+    }
+  }
+
   private Path extractPlugin() throws IOException {
     Path pluginPath = this.workDir.resolve("plugins").resolve("sonar-java-plugin.jar");
     Files.createDirectories(pluginPath.getParent());

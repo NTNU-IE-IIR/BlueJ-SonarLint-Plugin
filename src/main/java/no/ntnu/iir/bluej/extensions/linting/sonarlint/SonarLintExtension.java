@@ -17,7 +17,7 @@ public class SonarLintExtension extends Extension {
   @Override
   public void startup(BlueJ blueJ) {
     System.out.println("SonarLintExtension.startup() called...");
-    System.out.println("BlueJ Extension Version (bluejext2.jar): "
+    System.out.println("BlueJ Extension API Version: "
         + Extension.getExtensionsAPIVersionMajor()
         + "."
         + Extension.getExtensionsAPIVersionMinor());

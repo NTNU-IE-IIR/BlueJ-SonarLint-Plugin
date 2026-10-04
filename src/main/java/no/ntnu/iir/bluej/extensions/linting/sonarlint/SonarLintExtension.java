@@ -13,6 +13,7 @@ import no.ntnu.iir.bluej.extensions.linting.sonarlint.checker.CheckerService;
 import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.SonarLintIconMapper;
 
 public class SonarLintExtension extends Extension {
+  private CheckerService checkerService;
   
   @Override
   public void startup(BlueJ blueJ) {
@@ -24,21 +25,34 @@ public class SonarLintExtension extends Extension {
 
     RuleDefinition.setIconMapper(new SonarLintIconMapper());
     ViolationManager violationManager = new ViolationManager();
-    CheckerService checkerService = new CheckerService(violationManager);
-    CheckerListener checkerListener = new CheckerListener(violationManager, checkerService);
-    checkerService.setListener(checkerListener);
+    try {
+      this.checkerService = new CheckerService(violationManager, this.getVersion());
+    } catch (Exception e) {
+      System.err.println("SonarLintExtension: unable to start SonarLint");
+      e.printStackTrace();
+      return;
+    }
+    CheckerListener checkerListener = new CheckerListener(violationManager, this.checkerService);
+    this.checkerService.setListener(checkerListener);
     AuditWindow.setTitlePrefix(this.getName());
     
     PackageEventHandler packageEventHandler = new PackageEventHandler(
         violationManager, 
-        checkerService
+        this.checkerService
     );
 
     blueJ.addPackageListener(packageEventHandler);
-    blueJ.addClassListener(new FilesChangeHandler(violationManager, checkerService));
-    blueJ.setPreferenceGenerator(new SonarLintProperties(blueJ, checkerService, violationManager));
+    blueJ.addClassListener(new FilesChangeHandler(violationManager, this.checkerService));
+    blueJ.setPreferenceGenerator(new SonarLintProperties(blueJ, this.checkerService, violationManager));
     blueJ.setMenuGenerator(new SonarLintMenuBuilder(packageEventHandler));
     System.out.println("SonarLintExtension.startup() finished...");
+  }
+
+  @Override
+  public void terminate() {
+    if (this.checkerService != null) {
+      this.checkerService.shutdown();
+    }
   }
 
   @Override

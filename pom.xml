@@ -33,8 +33,12 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
-    <sonarlint-core.version>7.0.0.37656</sonarlint-core.version>
-    <sonarlint-java-plugin.version>7.6.0.28201</sonarlint-java-plugin.version>
+    <!--
+      12.0.x of sonarlint-core is on Maven Central, but the modules it depends on
+      (sonarlint-commons, sonarlint-rpc-protocol, ...) are not, so 11.10 is the latest usable release.
+    -->
+    <sonarlint-core.version>11.10.0.86299</sonarlint-core.version>
+    <sonarlint-java-plugin.version>8.44.0.48651</sonarlint-java-plugin.version>
     <!--
       Use the JavaFX version bundled with BlueJ (JavaFX is "provided" at runtime).
       Do not upgrade beyond what BlueJ bundles: JavaFX 24+ also requires JDK 22+.
@@ -49,9 +53,16 @@
       <version>1.2.1</version>
     </dependency>
 
+    <!-- The SonarLint backend, run in-process and accessed through its JSON-RPC API -->
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-core</artifactId>
+      <artifactId>sonarlint-rpc-impl</artifactId>
+      <version>${sonarlint-core.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.sonarsource.sonarlint.core</groupId>
+      <artifactId>sonarlint-rpc-java-client</artifactId>
       <version>${sonarlint-core.version}</version>
     </dependency>
 
@@ -179,6 +190,19 @@
             <configuration>
               <outputFile>./target/${project.artifactId}-${project.version}.jar</outputFile>
               <shadedArtifactAttached>true</shadedArtifactAttached>
+              <transformers>
+                <!-- merge the service registrations and Spring metadata of the SonarLint backend dependencies -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.handlers</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.schemas</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.factories</resource>
+                </transformer>
+              </transformers>
               <artifactSet>
                 <excludes>
                   <exclude>org.openjfx:*</exclude>

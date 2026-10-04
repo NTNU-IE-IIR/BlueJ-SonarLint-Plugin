@@ -10,18 +10,18 @@ import java.util.Optional;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.RuleDefinition;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.Violation;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
-import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.StringUtils;
-import org.sonarsource.sonarlint.core.client.api.common.analysis.ClientInputFile;
-import org.sonarsource.sonarlint.core.client.api.common.analysis.Issue;
-import org.sonarsource.sonarlint.core.client.api.common.analysis.IssueListener;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneRuleDetails;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.RuleAttributes;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleDefinitionDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.client.analysis.RawIssueDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.common.RuleType;
+import org.sonarsource.sonarlint.core.rpc.protocol.common.TextRangeDto;
 
 /**
- * Represents a CheckerListener. 
+ * Represents a CheckerListener.
  * Is a Listener of the CheckerService and handles adding violations to the ViolationManager
  * when they occur. Also handles necessary formatting/preprocessing if necessary.
  */
-public class CheckerListener implements IssueListener {
+public class CheckerListener {
   private ViolationManager violationManager;
   private CheckerService checkerService;
 
@@ -33,52 +33,52 @@ public class CheckerListener implements IssueListener {
   /**
    * Handles issues from the CheckerService.
    */
-  @Override
-  public void handle(Issue issue) {
-    ClientInputFile inputFile = issue.getInputFile();
+  public void handle(RawIssueDto issue) {
+    URI fileUri = issue.getFileUri();
 
-    if (inputFile != null) {
-      URI fileUri = inputFile.uri();
+    // Security hotspots are not issues in the code, but code for a human to review
+    if (fileUri != null && issue.getType() != RuleType.SECURITY_HOTSPOT) {
       File file = new File(fileUri);
       String fileName = file.getPath();
       BClass sourceBClass = this.violationManager.getBlueClass(file.getPath());
 
-      Optional<StandaloneRuleDetails> ruleDetails = this.checkerService.getRuleDetails(
+      Optional<RuleDefinitionDto> ruleDetails = this.checkerService.getRuleDefinition(
           issue.getRuleKey()
       );
-  
+
       RuleDefinition ruleDefinition = null;
-  
+
       if (ruleDetails.isPresent()) {
         ruleDefinition = new RuleDefinition(
-          issue.getRuleName(), 
-          issue.getRuleKey(), 
-          StringUtils.formatHtmlDescription(ruleDetails.get()), 
-          issue.getSeverity(), 
-          issue.getType()
+          ruleDetails.get().getName(),
+          issue.getRuleKey(),
+          this.checkerService.getHtmlDescription(issue.getRuleKey()),
+          issue.getSeverity() != null
+              ? issue.getSeverity().name()
+              : RuleAttributes.severityOf(ruleDetails.get().getSoftwareImpacts()),
+          issue.getType() != null
+              ? issue.getType().name()
+              : RuleAttributes.typeOf(ruleDetails.get().getSoftwareImpacts())
         );
       }
-  
-      int startLine = 0;
-      int startLineOffset = 0;
-  
-      // turns out some of the issues don't have startLine and startLineOffset defined
+
+      // some of the issues are on the file as a whole, and have no text range.
       // fall back to 1 for these, instantiating TextLocation with 0-values will cause problems
-      try {
-        startLine = issue.getStartLine();
-        startLineOffset = issue.getStartLineOffset();
-      } catch (Exception e) {
-        startLine = 1;
-        startLineOffset = 1;
+      int startLine = 1;
+      int startLineOffset = 1;
+      TextRangeDto textRange = issue.getTextRange();
+      if (textRange != null) {
+        startLine = textRange.getStartLine();
+        startLineOffset = textRange.getStartLineOffset();
       }
-  
+
       Violation violation = new Violation(
-          issue.getMessage(),
-          sourceBClass, 
+          issue.getPrimaryMessage(),
+          sourceBClass,
           new TextLocation(startLine, startLineOffset),
           ruleDefinition
       );
-  
+
       List<Violation> violations = violationManager.getViolations(fileName);
       if (violations != null) {
         violations.add(violation);
@@ -90,6 +90,4 @@ public class CheckerListener implements IssueListener {
       }
     }
   }
-  
-
 }

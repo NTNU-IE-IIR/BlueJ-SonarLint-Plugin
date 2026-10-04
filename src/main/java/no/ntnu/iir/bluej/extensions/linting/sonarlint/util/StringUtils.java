@@ -1,6 +1,12 @@
 package no.ntnu.iir.bluej.extensions.linting.sonarlint.util;
 
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneRuleDetails;
+import java.util.List;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleContextualSectionDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleContextualSectionWithDefaultContextKeyDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleDescriptionTabDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleMonolithicDescriptionDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleSplitDescriptionDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.common.Either;
 
 /**
  * Simple utility class for working with and parsing Strings to a given format.
@@ -41,32 +47,84 @@ public class StringUtils {
   /**
    * Utility method to format a SonarLint rules HtmlDescription.
    * 
-   * @param ruleDetails the StandaloneRuleDetails to format the HtmlDescription for
+   * @param name the name of the rule
+   * @param key the key of the rule, e.g. "java:S100"
+   * @param type the legacy type of the rule, e.g. "BUG"
+   * @param severity the legacy severity of the rule, e.g. "MAJOR"
+   * @param htmlDescription the description of the rule, as HTML
    * @return the formatted HtmlDescription as a String
    */
-  public static String formatHtmlDescription(StandaloneRuleDetails ruleDetails) {
+  public static String formatHtmlDescription(
+      String name,
+      String key,
+      String type,
+      String severity,
+      String htmlDescription
+  ) {
     String formatted = "";
     SonarLintIconMapper mapper = new SonarLintIconMapper();
 
-    formatted += "<h1>" + ruleDetails.getName() + "</h1>\n";
+    formatted += "<h1>" + name + "</h1>\n";
     formatted += "<div style=\"display: inline-flex; items-center\">";
     formatted += String.format(
       "<img style=\"padding: 0px 4px\" src=\"%s\" />",
-      mapper.getIcon(ruleDetails.getType())
+      mapper.getIcon(type)
     );
-    formatted += StringUtils.constantToReadable(ruleDetails.getType());
+    formatted += StringUtils.constantToReadable(type);
     formatted += String.format(
       "<img style=\"padding: 0px 4px\" src=\"%s\" />",
-      mapper.getIcon(ruleDetails.getSeverity())
+      mapper.getIcon(severity)
     );
-    formatted += StringUtils.constantToReadable(ruleDetails.getSeverity());
+    formatted += StringUtils.constantToReadable(severity);
     formatted += String.format(
       "<span style=\"padding: 0px 8px; color: #555\">(Key: %s)</span>",
-      ruleDetails.getKey().split(":")[1]
+      key.split(":")[1]
     );
     formatted += "</div>";
-    formatted += ruleDetails.getHtmlDescription();
+    formatted += htmlDescription;
 
     return formatted;
+  }
+
+  /**
+   * Utility method to join a SonarLint rule description into a single HTML document.
+   * Descriptions split into tabs (e.g. "Why is this an issue?", "How can I fix it?") are
+   * rendered as consecutive sections. For tabs with context specific content (e.g. per framework),
+   * the default context is shown.
+   * 
+   * @param description the rule description
+   * @return the rule description as HTML
+   */
+  public static String descriptionToHtml(
+      Either<RuleMonolithicDescriptionDto, RuleSplitDescriptionDto> description
+  ) {
+    if (description.isLeft()) {
+      return description.getLeft().getHtmlContent();
+    }
+
+    RuleSplitDescriptionDto splitDescription = description.getRight();
+    StringBuilder html = new StringBuilder();
+    if (splitDescription.getIntroductionHtmlContent() != null) {
+      html.append(splitDescription.getIntroductionHtmlContent());
+    }
+    for (RuleDescriptionTabDto tab : splitDescription.getTabs()) {
+      html.append("<h2>").append(tab.getTitle()).append("</h2>\n");
+      if (tab.getContent().isLeft()) {
+        html.append(tab.getContent().getLeft().getHtmlContent());
+      } else {
+        html.append(defaultContextHtml(tab.getContent().getRight()));
+      }
+    }
+    return html.toString();
+  }
+
+  private static String defaultContextHtml(RuleContextualSectionWithDefaultContextKeyDto content) {
+    List<RuleContextualSectionDto> sections = content.getContextualSections();
+    return sections.stream()
+      .filter(section -> section.getContextKey().equals(content.getDefaultContextKey()))
+      .findFirst()
+      .or(() -> sections.stream().findFirst())
+      .map(RuleContextualSectionDto::getHtmlContent)
+      .orElse("");
   }
 }

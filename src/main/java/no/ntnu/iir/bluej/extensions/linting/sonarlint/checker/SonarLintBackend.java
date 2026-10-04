@@ -3,6 +3,7 @@ package no.ntnu.iir.bluej.extensions.linting.sonarlint.checker;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.URI;
@@ -19,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -83,7 +85,7 @@ public class SonarLintBackend {
     // BlueJ loads extensions in their own class loader. The backend (Spring, lsp4j, Gson) uses the
     // context class loader, and its worker threads inherit it, so it must be ours while starting up.
     this.clientLauncher = withExtensionClassLoader(() -> {
-      new BackendJsonRpcLauncher(clientToServerIn, serverToClientOut);
+      startBackend(clientToServerIn, serverToClientOut);
       return new ClientJsonRpcLauncher(serverToClientIn, clientToServerOut, this.client);
     });
     this.server = this.clientLauncher.getServerProxy();
@@ -201,6 +203,26 @@ public class SonarLintBackend {
       LOGGER.log(Level.WARNING, "Unable to close the SonarLint client", e);
     }
     deleteRecursively(this.workDir);
+  }
+
+  /**
+   * Starts the backend, keeping BlueJ's java.util.logging configuration.
+   * On startup the backend replaces the handlers of the java.util.logging root logger with a
+   * bridge to its own logging, which would redirect all logging in BlueJ to the backend.
+   */
+  private static void startBackend(InputStream in, OutputStream out) {
+    java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
+    Handler[] blueJHandlers = rootLogger.getHandlers();
+    try {
+      new BackendJsonRpcLauncher(in, out);
+    } finally {
+      for (Handler handler : rootLogger.getHandlers()) {
+        rootLogger.removeHandler(handler);
+      }
+      for (Handler handler : blueJHandlers) {
+        rootLogger.addHandler(handler);
+      }
+    }
   }
 
   private String ensureConfigScope(Path baseDir) {

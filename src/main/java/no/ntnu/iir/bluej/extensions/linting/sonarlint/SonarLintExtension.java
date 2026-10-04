@@ -3,18 +3,21 @@ package no.ntnu.iir.bluej.extensions.linting.sonarlint;
 import bluej.extensions2.BlueJ;
 import bluej.extensions2.Extension;
 import java.net.URL;
-import no.ntnu.iir.bluej.extensions.linting.core.handlers.FilesChangeHandler;
-import no.ntnu.iir.bluej.extensions.linting.core.handlers.PackageEventHandler;
-import no.ntnu.iir.bluej.extensions.linting.core.ui.AuditWindow;
-import no.ntnu.iir.bluej.extensions.linting.core.violations.RuleDefinition;
-import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
-import no.ntnu.iir.bluej.extensions.linting.sonarlint.checker.CheckerListener;
-import no.ntnu.iir.bluej.extensions.linting.sonarlint.checker.CheckerService;
-import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.SonarLintIconMapper;
 
+/**
+ * The entry point of the extension, loaded by BlueJ.
+ * BlueJ ships older versions of some libraries SonarLint depends on, and its extension class
+ * loader prefers those over the ones bundled in the extension jar. To use the bundled versions,
+ * the extension itself ({@link SonarLintRuntime}) is loaded through a {@link ChildFirstClassLoader},
+ * and is only accessed by reflection from this class.
+ */
 public class SonarLintExtension extends Extension {
-  private CheckerService checkerService;
-  
+  private static final String RUNTIME_CLASS =
+      "no.ntnu.iir.bluej.extensions.linting.sonarlint.SonarLintRuntime";
+
+  private ChildFirstClassLoader classLoader;
+  private Object runtime;
+
   @Override
   public void startup(BlueJ blueJ) {
     System.out.println("SonarLintExtension.startup() called...");
@@ -23,35 +26,45 @@ public class SonarLintExtension extends Extension {
         + "."
         + Extension.getExtensionsAPIVersionMinor());
 
-    RuleDefinition.setIconMapper(new SonarLintIconMapper());
-    ViolationManager violationManager = new ViolationManager();
+    Thread thread = Thread.currentThread();
+    ClassLoader previousContextClassLoader = thread.getContextClassLoader();
     try {
-      this.checkerService = new CheckerService(violationManager, this.getVersion());
-    } catch (Exception e) {
-      System.err.println("SonarLintExtension: unable to start SonarLint");
-      e.printStackTrace();
-      return;
-    }
-    CheckerListener checkerListener = new CheckerListener(violationManager, this.checkerService);
-    this.checkerService.setListener(checkerListener);
-    AuditWindow.setTitlePrefix(this.getName());
-    
-    PackageEventHandler packageEventHandler = new PackageEventHandler(
-        violationManager, 
-        this.checkerService
-    );
+      URL extensionJar = this.getClass().getProtectionDomain().getCodeSource().getLocation();
+      this.classLoader = new ChildFirstClassLoader(
+          new URL[] { extensionJar },
+          this.getClass().getClassLoader()
+      );
+      thread.setContextClassLoader(this.classLoader);
 
-    blueJ.addPackageListener(packageEventHandler);
-    blueJ.addClassListener(new FilesChangeHandler(violationManager, this.checkerService));
-    blueJ.setPreferenceGenerator(new SonarLintProperties(blueJ, this.checkerService, violationManager));
-    blueJ.setMenuGenerator(new SonarLintMenuBuilder(packageEventHandler));
+      Class<?> runtimeClass = this.classLoader.loadClass(RUNTIME_CLASS);
+      this.runtime = runtimeClass.getConstructor().newInstance();
+      runtimeClass
+          .getMethod("startup", BlueJ.class, String.class, String.class)
+          .invoke(this.runtime, blueJ, this.getName(), this.getVersion());
+    } catch (Exception e) {
+      System.err.println("SonarLintExtension: unable to start the extension");
+      e.printStackTrace();
+    } finally {
+      thread.setContextClassLoader(previousContextClassLoader);
+    }
     System.out.println("SonarLintExtension.startup() finished...");
   }
 
   @Override
   public void terminate() {
-    if (this.checkerService != null) {
-      this.checkerService.shutdown();
+    if (this.runtime != null) {
+      try {
+        this.runtime.getClass().getMethod("terminate").invoke(this.runtime);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    if (this.classLoader != null) {
+      try {
+        this.classLoader.close();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
   }
 
@@ -89,5 +102,5 @@ public class SonarLintExtension extends Extension {
       "SonarLint for BlueJ."
     );
   }
-  
+
 }

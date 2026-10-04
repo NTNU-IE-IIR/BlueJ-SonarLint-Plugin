@@ -14,9 +14,9 @@
   Link the project to the SCM (GitHub) to enable the use of the Maven Release plugin
   -->
   <scm>
-    <connection>scm:git:${project.scm.url}</connection>
-    <developerConnection>scm:git:${project.scm.url}</developerConnection>
-    <url>git@github.com:NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
+    <connection>scm:git:https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin.git</connection>
+    <developerConnection>scm:git:https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin.git</developerConnection>
+    <url>https://github.com/NTNU-IE-IIR/BlueJ-SonarLint-Plugin</url>
     <tag>HEAD</tag>
   </scm>
 

@@ -1,0 +1,88 @@
+name: Release
+
+# Cuts a release from develop in one job:
+#   1. checks that main can be fast-forwarded and that the tag doesn't exist yet
+#   2. runs maven-release-plugin (release commits + tag on develop, builds the tagged version)
+#   3. fast-forwards main to the release tag
+#   4. creates the GitHub Release with the jar built in step 2
+# Run it from develop. Never commit directly to main; it only moves forward to release tags.
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release version (e.g. 1.1.0)'
+        required: true
+        type: string
+      nextDevelopmentVersion:
+        description: 'Next development version (e.g. 1.2.0-SNAPSHOT)'
+        required: true
+        type: string
+
+concurrency:
+  group: release
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # push to develop and main, push the tag, create the GitHub Release
+    env:
+      TAG: v${{ inputs.releaseVersion }}
+
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: 'develop'
+          fetch-depth: 0  # full history, for the checks and the fast-forward of main
+
+      - name: Check that main is part of develop
+        run: |
+          if [ -n "$(git log --oneline origin/develop..origin/main)" ]; then
+            echo "::error::main has commits that are not in develop. Merge main into develop, then run the release again."
+            git log --oneline origin/develop..origin/main
+            exit 1
+          fi
+
+      - name: Check that the release tag doesn't exist
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "::error::Tag $TAG already exists."
+            exit 1
+          fi
+
+      - name: Set GitHub Actions as commit author
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      # release:perform checks out the tag into target/checkout and builds it there
+      - name: Perform Maven Release
+        run:
+          mvn -B release:clean release:prepare release:perform
+            -DreleaseVersion=${{ inputs.releaseVersion }}
+            -DdevelopmentVersion=${{ inputs.nextDevelopmentVersion }}
+            -Darguments="-Dmaven.javadoc.skip=true -Dmaven.deploy.skip=true"
+
+      # a plain (non-force) push only succeeds if it is a fast-forward
+      - name: Fast-forward main to the release tag
+        run: git push origin "$(git rev-parse "$TAG^{commit}"):refs/heads/main"
+
+      - name: Upload release to GitHub Releases
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.TAG }}
+          name: ${{ env.TAG }}
+          generate_release_notes: true
+          files: target/checkout/target/sonarlint4bluej-${{ inputs.releaseVersion }}.jar
+          fail_on_unmatched_files: true

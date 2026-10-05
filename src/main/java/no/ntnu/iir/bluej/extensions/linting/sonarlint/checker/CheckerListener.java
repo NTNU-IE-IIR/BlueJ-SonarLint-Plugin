@@ -4,6 +4,7 @@ import bluej.extensions2.BClass;
 import bluej.extensions2.editor.TextLocation;
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +39,9 @@ public class CheckerListener {
 
     // Security hotspots are not issues in the code, but code for a human to review
     if (fileUri != null && issue.getType() != RuleType.SECURITY_HOTSPOT) {
-      File file = new File(fileUri);
+      // Path.of, unlike new File(URI), accepts the URIs of files on network shares on Windows
+      // (e.g. file://server/share/X.java for \\server\share\X.java)
+      File file = Path.of(fileUri).toFile();
       String fileName = file.getPath();
       BClass sourceBClass = this.violationManager.getBlueClass(file.getPath());
 

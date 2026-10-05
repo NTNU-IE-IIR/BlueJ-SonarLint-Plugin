@@ -17,6 +17,7 @@ import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.RuleAttributes;
 import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.StringUtils;
 import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.GetStandaloneRuleDescriptionResponse;
 import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleDefinitionDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.client.analysis.RawIssueDto;
 
 /**
  * Represents a CheckerService implementation for SonarLint.
@@ -55,7 +56,7 @@ public class CheckerService implements ICheckerService {
         Path baseDir = this.findBaseDirPath(filesToCheck.get(0));
 
         if (baseDir != null) {
-          this.backend.analyze(baseDir, filesToCheck).forEach(this.listener::handle);
+          this.report(this.backend.analyze(baseDir, filesToCheck));
         }
       } catch (Exception e) {
         e.printStackTrace();
@@ -77,8 +78,21 @@ public class CheckerService implements ICheckerService {
         this.violationManager.syncBlueClassMap();
         Path baseDir = this.findBaseDirPath(fileToCheck);
         if (baseDir != null) {
-          this.backend.analyze(baseDir, List.of(fileToCheck)).forEach(this.listener::handle);
+          this.report(this.backend.analyze(baseDir, List.of(fileToCheck)));
         }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  /**
+   * Reports issues to the listener. An issue that can not be reported does not stop the rest.
+   */
+  private void report(List<RawIssueDto> issues) {
+    for (RawIssueDto issue : issues) {
+      try {
+        this.listener.handle(issue);
       } catch (Exception e) {
         e.printStackTrace();
       }

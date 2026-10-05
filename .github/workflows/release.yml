@@ -63,7 +63,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'maven'
 
       # release:perform checks out the tag into target/checkout and builds it there

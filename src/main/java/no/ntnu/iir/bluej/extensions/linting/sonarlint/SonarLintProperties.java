@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -35,7 +34,6 @@ import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
 import no.ntnu.iir.bluej.extensions.linting.sonarlint.checker.CheckerService;
 import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.SonarLintIconMapper;
 import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.StringUtils;
-import org.sonarsource.sonarlint.core.client.api.common.RuleKey;
 
 /**
  * Manages properties for SonarLint.
@@ -44,7 +42,7 @@ public class SonarLintProperties implements PreferenceGenerator {
   private BlueJ blueJ;
   private CheckerService checkerService;
   private ViolationManager violationManager;
-  private List<RuleKey> disabledRules;
+  private List<String> disabledRules;
   private HashMap<String, SonarLintRuleDetails> ruleDetailsMap;
   private VBox pane;
   private TextField tableFilterField;
@@ -166,10 +164,10 @@ public class SonarLintProperties implements PreferenceGenerator {
       enabledComboBox.getSelectionModel().select(selected);
       enabledComboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
         if (newValue.equals("No")) {
-          this.disabledRules.add(RuleKey.parse(data.getValue().getValue().getKey()));
+          this.disabledRules.add(data.getValue().getValue().getKey());
           data.getValue().getValue().setEnabled(false);
         } else {
-          this.disabledRules.remove(RuleKey.parse(data.getValue().getValue().getKey()));
+          this.disabledRules.remove(data.getValue().getValue().getKey());
           data.getValue().getValue().setEnabled(true);
         }
       });
@@ -259,15 +257,17 @@ public class SonarLintProperties implements PreferenceGenerator {
     for (String ruleKeyString : disabledRulesList) {
       // guard condition to ignore empty string(s)
       if (!ruleKeyString.equals("")) { 
-        RuleKey ruleKey = RuleKey.parse(ruleKeyString);
-        this.disabledRules.add(ruleKey);
+        this.disabledRules.add(ruleKeyString);
       }
     }
 
-    this.checkerService.getRuleDetails().forEach(ruleDetails -> {
-      this.ruleDetailsMap.put(ruleDetails.getKey(), new SonarLintRuleDetails(ruleDetails, true));
+    this.checkerService.getRuleDefinitions().forEach(ruleDefinition -> {
+      this.ruleDetailsMap.put(
+          ruleDefinition.getKey(),
+          new SonarLintRuleDetails(ruleDefinition, this.checkerService, true)
+      );
       this.disabledRules.forEach(ruleKey -> {
-        SonarLintRuleDetails details = this.ruleDetailsMap.get(ruleKey.toString());
+        SonarLintRuleDetails details = this.ruleDetailsMap.get(ruleKey);
         if (details != null) {
           details.setEnabled(false);
         }
@@ -288,12 +288,7 @@ public class SonarLintProperties implements PreferenceGenerator {
    */
   @Override
   public void saveValues() {
-    List<String> ruleKeyList = this.disabledRules
-        .stream()
-        .map(RuleKey::toString)
-        .collect(Collectors.toList());
-    
-    String disabledRulesString = String.join(",", ruleKeyList);
+    String disabledRulesString = String.join(",", this.disabledRules);
     
     this.blueJ.setExtensionPropertyString(
         SONARLINT_DISABLED_RULES,

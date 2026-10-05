@@ -68,14 +68,14 @@ Contributions are welcome. Feel free to discuss the changes with us in a [featur
 
 ## Dependencies
 
-This plugin relies on the usage of the BlueJ Extensions2 API. The latest version is added to this repository in the `lib` directory.
-The bluejext2 jar is bundled with the BlueJ installation, it can be retrieved from there. Detailed instructions can be found in the [BlueJ documentation][5].
+This plugin relies on the usage of the BlueJ Extensions2 API. Since BlueJ 6 the API is part of `bluej.jar`, and the version used is added to this repository in the `lib` directory.
+The jar is bundled with the BlueJ installation, it can be retrieved from there. Detailed instructions can be found in the [BlueJ documentation][5].
 
-A [toolscript](tools/updateBlueJdeps.ps1) is available for Windows users to update the API, it can also be used as a reference as on how to install new versions of the API to the lib directory.
+Toolscripts are available to install a new version of the jar to the `lib` directory: [updateBlueJdeps.ps1](tools/updateBlueJdeps.ps1) for Windows and [updateBlueJdeps.sh](tools/updateBlueJdeps.sh) for macOS.
 
-The current version of the API is version 3.2, from version 5.0.2 of BlueJ.
+The plugin is built against BlueJ 6.0.0 (Extensions API 3.4), which runs on Java 21, and requires a JDK 21 to build.
 
-**Note:** the script assumes BlueJ is installed for all users.
+**Note:** the Windows script assumes BlueJ is installed for all users.
 
 
 A lot of core functionality for this plugin is provided by [BlueJ-Linting-Core][6], feel free to take a look at it as well.

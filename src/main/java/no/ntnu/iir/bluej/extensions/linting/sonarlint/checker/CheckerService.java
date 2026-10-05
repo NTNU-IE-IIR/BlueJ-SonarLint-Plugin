@@ -2,25 +2,22 @@ package no.ntnu.iir.bluej.extensions.linting.sonarlint.checker;
 
 import bluej.extensions2.BPackage;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 import no.ntnu.iir.bluej.extensions.linting.core.checker.ICheckerService;
 import no.ntnu.iir.bluej.extensions.linting.core.violations.ViolationManager;
-import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
-import org.sonarsource.sonarlint.core.client.api.common.Language;
-import org.sonarsource.sonarlint.core.client.api.common.LogOutput;
-import org.sonarsource.sonarlint.core.client.api.common.RuleKey;
-import org.sonarsource.sonarlint.core.client.api.common.analysis.ClientInputFile;
-import org.sonarsource.sonarlint.core.client.api.common.analysis.IssueListener;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisConfiguration;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneGlobalConfiguration;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneRuleDetails;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintEngine;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.RuleAttributes;
+import no.ntnu.iir.bluej.extensions.linting.sonarlint.util.StringUtils;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.GetStandaloneRuleDescriptionResponse;
+import org.sonarsource.sonarlint.core.rpc.protocol.backend.rules.RuleDefinitionDto;
+import org.sonarsource.sonarlint.core.rpc.protocol.client.analysis.RawIssueDto;
 
 /**
  * Represents a CheckerService implementation for SonarLint.
@@ -28,33 +25,25 @@ import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneSonarLintE
  */
 public class CheckerService implements ICheckerService {
   private ViolationManager violationManager;
-  private StandaloneSonarLintEngine engine;
-  private StandaloneGlobalConfiguration globalConfig;
-  private LogOutput logOutput;
+  private SonarLintBackend backend;
+  private Map<String, RuleDefinitionDto> rulesByKey;
+  private Map<String, String> htmlDescriptionsByKey;
   private boolean enabled;
-  private IssueListener issueListener;
-  private Collection<RuleKey> disabledRuleKeys;
-      
+  private CheckerListener listener;
+
   /**
-   * Instantiates a new CheckerService.
+   * Instantiates a new CheckerService, starting the SonarLint backend.
+   *
+   * @param violationManager the ViolationManager to report violations to
+   * @param version the version of this extension
+   * @throws IOException if the SonarLint backend could not be started
    */
-  public CheckerService(ViolationManager violationManager) {
+  public CheckerService(ViolationManager violationManager, String version) throws IOException {
     this.violationManager = violationManager;
-    this.logOutput = new CheckerLogOutput();
-
-    this.globalConfig = StandaloneGlobalConfiguration.builder()
-        .setLogOutput(logOutput)
-        .addEnabledLanguage(Language.JAVA)
-        .addPlugin(
-          this.getClass()
-            .getClassLoader()
-            .getResource("plugins/sonar-java-plugin.jar")
-        )
-        .build();
-
-    this.engine = new StandaloneSonarLintEngineImpl(globalConfig);
+    this.backend = new SonarLintBackend(version);
+    this.rulesByKey = this.backend.listRules();
+    this.htmlDescriptionsByKey = new ConcurrentHashMap<>();
     this.enabled = true;
-    this.disabledRuleKeys = new ArrayList<>();
   }
 
   /**
@@ -64,21 +53,10 @@ public class CheckerService implements ICheckerService {
     if (enabled) {
       try {
         this.violationManager.syncBlueClassMap();
-        List<ClientInputFile> clientInputFiles = filesToCheck
-            .stream()
-            .map(ClientInputFileAdapter::new)
-            .collect(Collectors.toList());
-    
         Path baseDir = this.findBaseDirPath(filesToCheck.get(0));
-  
+
         if (baseDir != null) {
-          StandaloneAnalysisConfiguration configuration = StandaloneAnalysisConfiguration.builder()
-              .addInputFiles(clientInputFiles)
-              .setBaseDir(baseDir)
-              .addExcludedRules(disabledRuleKeys)
-              .build();
-          
-          this.engine.analyze(configuration, this.issueListener, this.logOutput, null);
+          this.report(this.backend.analyze(baseDir, filesToCheck));
         }
       } catch (Exception e) {
         e.printStackTrace();
@@ -92,7 +70,7 @@ public class CheckerService implements ICheckerService {
   public void checkFile(File fileToCheck, String charset) {
     if (enabled) {
       try {
-        // When the engine analyzes a file, 
+        // When the engine analyzes a file,
         // it does not give us a complete list of violations for the file.
         // Due to this, we have to clear the violations before each check.
         this.violationManager.setViolations(fileToCheck.getPath(), new ArrayList<>());
@@ -100,12 +78,7 @@ public class CheckerService implements ICheckerService {
         this.violationManager.syncBlueClassMap();
         Path baseDir = this.findBaseDirPath(fileToCheck);
         if (baseDir != null) {
-          StandaloneAnalysisConfiguration configuration = StandaloneAnalysisConfiguration.builder()
-              .addInputFile(new ClientInputFileAdapter(fileToCheck))
-              .setBaseDir(baseDir)
-              .build();
-      
-          this.engine.analyze(configuration, this.issueListener, this.logOutput, null);
+          this.report(this.backend.analyze(baseDir, List.of(fileToCheck)));
         }
       } catch (Exception e) {
         e.printStackTrace();
@@ -114,8 +87,21 @@ public class CheckerService implements ICheckerService {
   }
 
   /**
-   * Finds the base directory from the mapped package. 
-   * 
+   * Reports issues to the listener. An issue that can not be reported does not stop the rest.
+   */
+  private void report(List<RawIssueDto> issues) {
+    for (RawIssueDto issue : issues) {
+      try {
+        this.listener.handle(issue);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  /**
+   * Finds the base directory from the mapped package.
+   *
    * @param file the file to find the base directory from
    * @return the found base directory - or null if none was found
    */
@@ -141,18 +127,6 @@ public class CheckerService implements ICheckerService {
   }
 
   /**
-   * Returns keys to all rules available in the SonarLint Engine.
-   * 
-   * @return keys to all rules available in the SonarLint Engine
-   */
-  public List<String> getRuleKeys() {
-    return this.engine.getAllRuleDetails()
-      .stream()
-      .map(StandaloneRuleDetails::getKey)
-      .collect(Collectors.toList());
-  }
-
-  /**
    * Enables the CheckerService.
    */
   @Override
@@ -171,7 +145,7 @@ public class CheckerService implements ICheckerService {
 
   /**
    * Returns a boolean representing the CheckerServices state.
-   * 
+   *
    * @return a boolean representing the CheckerServices state
    */
   @Override
@@ -181,39 +155,67 @@ public class CheckerService implements ICheckerService {
 
   /**
    * Sets the disabled rules for this CheckerService.
-   * 
-   * @param ruleKeys a collection of RuleKeys to mark as disabled/exclude from checking
+   *
+   * @param ruleKeys a collection of rule keys (e.g. "java:S100") to exclude from checking
    */
-  public void setDisabledRules(Collection<RuleKey> ruleKeys) {
-    this.disabledRuleKeys = ruleKeys;
+  public void setDisabledRules(Collection<String> ruleKeys) {
+    this.backend.setDisabledRules(ruleKeys);
   }
 
   /**
-   * Returns rule details for the rules in the CheckerService.
-   * 
-   * @return rule details for the rules in the CheckerService
+   * Returns the definitions of all rules in the CheckerService.
+   *
+   * @return the definitions of all rules in the CheckerService
    */
-  public Collection<StandaloneRuleDetails> getRuleDetails() {
-    return this.engine.getAllRuleDetails();
+  public Collection<RuleDefinitionDto> getRuleDefinitions() {
+    return this.rulesByKey.values();
   }
 
   /**
-   * Returns the rule details for a given rule key.
-   * 
-   * @param ruleKey the rule key to find rule details from 
-   * 
-   * @return the rule details for the given rule key, if any
+   * Returns the definition of a given rule key.
+   *
+   * @param ruleKey the rule key to find the definition of
+   *
+   * @return the definition of the given rule key, if any
    */
-  public Optional<StandaloneRuleDetails> getRuleDetails(String ruleKey) {
-    return this.engine.getRuleDetails(ruleKey);
+  public Optional<RuleDefinitionDto> getRuleDefinition(String ruleKey) {
+    return Optional.ofNullable(this.rulesByKey.get(ruleKey));
   }
 
   /**
-   * Sets the Issuelistener for this CheckerService.
-   * 
-   * @param listener the IssueListener to listen to this service
+   * Returns the formatted HTML description of a rule, including its name, type and severity.
+   *
+   * @param ruleKey the rule key to get the description of
+   * @return the formatted HTML description of the rule
    */
-  public void setListener(IssueListener listener) {
-    this.issueListener = listener;
+  public String getHtmlDescription(String ruleKey) {
+    return this.htmlDescriptionsByKey.computeIfAbsent(ruleKey, key -> {
+      GetStandaloneRuleDescriptionResponse response = this.backend.getRuleDescription(key);
+      RuleDefinitionDto definition = response.getRuleDefinition();
+      return StringUtils.formatHtmlDescription(
+        definition.getName(),
+        definition.getKey(),
+        RuleAttributes.typeOf(definition.getSoftwareImpacts()),
+        RuleAttributes.severityOf(definition.getSoftwareImpacts()),
+        StringUtils.descriptionToHtml(response.getDescription())
+      );
+    });
+  }
+
+  /**
+   * Sets the CheckerListener for this CheckerService.
+   *
+   * @param listener the CheckerListener to receive issues found by this service
+   */
+  public void setListener(CheckerListener listener) {
+    this.listener = listener;
+  }
+
+  /**
+   * Stops the SonarLint backend. The CheckerService can not be used afterwards.
+   */
+  public void shutdown() {
+    this.enabled = false;
+    this.backend.shutdown();
   }
 }

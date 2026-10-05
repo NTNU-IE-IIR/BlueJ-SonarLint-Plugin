@@ -1,4 +1,4 @@
-# Simple toolscript for updating bluejcore.jar
+# Simple toolscript for updating BlueJ dependencies
 
 [CmdletBinding()]
 param (
@@ -9,8 +9,8 @@ param (
   [String] $Version
 );
 
-# lif of JAR files to update
-$JarDependencies = "bluejext2";
+# list of JAR files to update
+$JarDependencies = @("bluej");
 $InstallDir = "C:\Program Files\BlueJ";
 
 foreach ($JarName in $JarDependencies) {

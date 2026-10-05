@@ -21,41 +21,55 @@
   </scm>
 
   <!--
-  BlueJ 5.1.0 uses the following versions of Java and JavaFX:
-      Java: 17.0.4
-      JavaFX: 17.0.3+2
+  BlueJ 6.0.0 uses the following versions of Java and JavaFX:
+      Java: 21.0.6
+      JavaFX: 23.0.2+3
 
   Note on <scope>provided</scope> in the dependency section:
          We use this scope to mark dependencies that should be provided at runtime by JDK or a container.
+         For BlueJ: JavaFX is already bundled with BlueJ, hence "provided" in this project.
          (https://www.baeldung.com/maven-dependency-scopes)
   -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <sonarlint-core.version>7.0.0.37656</sonarlint-core.version>
-    <sonarlint-java-plugin.version>7.6.0.28201</sonarlint-java-plugin.version>
-    <!-- Use a JavaFX version closest to the version used by BlueJ (17.0.3+2 is not available on the Maven repo) -->
-    <javafx.version>17.0.2</javafx.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <!--
+      12.0.x of sonarlint-core is on Maven Central, but the modules it depends on
+      (sonarlint-commons, sonarlint-rpc-protocol, ...) are not, so 11.10 is the latest usable release.
+    -->
+    <sonarlint-core.version>11.10.0.86299</sonarlint-core.version>
+    <sonarlint-java-plugin.version>8.44.0.48651</sonarlint-java-plugin.version>
+    <!--
+      Use the JavaFX version bundled with BlueJ (JavaFX is "provided" at runtime).
+      Do not upgrade beyond what BlueJ bundles: JavaFX 24+ also requires JDK 22+.
+    -->
+    <javafx.version>23.0.2</javafx.version>
   </properties>
 
   <dependencies>
     <dependency>
-	    <groupId>com.github.NTNU-IE-IIR</groupId>
-	    <artifactId>bluej-linting-core</artifactId>
-	    <version>1.1.0</version>
-	  </dependency>
+      <groupId>com.github.NTNU-IE-IIR</groupId>
+      <artifactId>bluej-linting-core</artifactId>
+      <version>1.2.1</version>
+    </dependency>
+
+    <!-- The SonarLint backend, run in-process and accessed through its JSON-RPC API -->
+    <dependency>
+      <groupId>org.sonarsource.sonarlint.core</groupId>
+      <artifactId>sonarlint-rpc-impl</artifactId>
+      <version>${sonarlint-core.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.sonarsource.sonarlint.core</groupId>
-      <artifactId>sonarlint-core</artifactId>
+      <artifactId>sonarlint-rpc-java-client</artifactId>
       <version>${sonarlint-core.version}</version>
     </dependency>
 
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.11</version>
+      <version>4.13.2</version>
       <scope>test</scope>
     </dependency>
 
@@ -68,19 +82,45 @@
 
     <dependency>
       <groupId>bluej</groupId>
-      <artifactId>bluejext2</artifactId>
+      <artifactId>bluej</artifactId>
       <type>jar</type>
-      <version>3.3</version>
+      <version>6.0.0</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <pluginManagement>
+    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults -->
       <plugins>
+        <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.16.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.0.2</version>
+          <version>3.5.1</version>
           <configuration>
             <finalName>${project.artifactId}-${project.version}-original</finalName>
             <archive>
@@ -99,7 +139,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>3.3.1</version>
         <configuration>
           <scmCommentPrefix>[ci skip]</scmCommentPrefix>
           <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -109,7 +149,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>3.11.0</version>
         <executions>
           <execution>
             <id>copy</id>
@@ -141,7 +181,7 @@
         -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>3.6.2</version>
         <executions>
           <execution>
             <goals>
@@ -150,6 +190,19 @@
             <configuration>
               <outputFile>./target/${project.artifactId}-${project.version}.jar</outputFile>
               <shadedArtifactAttached>true</shadedArtifactAttached>
+              <transformers>
+                <!-- merge the service registrations and Spring metadata of the SonarLint backend dependencies -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.handlers</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.schemas</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.factories</resource>
+                </transformer>
+              </transformers>
               <artifactSet>
                 <excludes>
                   <exclude>org.openjfx:*</exclude>
@@ -181,7 +234,7 @@
     <repository>
       <id>jitpack.io</id>
       <url>https://jitpack.io</url>
-	</repository>
+    </repository>
 
     <!--
       To get libraries stored in the lib-folder into the build.

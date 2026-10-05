@@ -65,6 +65,8 @@ We also appreciate ideas of enhancements and new features, feel free to suggest 
 ## Contributing
 Contributions are welcome. Feel free to discuss the changes with us in a [feature request][4] before submitting a Pull Request.
 
+The architecture of the extension, with class and sequence diagrams, is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 
 ## Dependencies
 

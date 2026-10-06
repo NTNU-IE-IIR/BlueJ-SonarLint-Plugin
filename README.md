@@ -27,7 +27,7 @@ To install for a project, make a directory called `extensions2` in the projects 
 | Operating System | Install-type | Directories                                                  |
 |------------------|--------------|--------------------------------------------------------------|
 | **Mac**          | *User*       | `$HOME/Library/Preferences/org.bluej/extensions2`            |
-|                  | *System*     | `<BLUEJ_HOME>/BlueJ.app/Contents/Resources/Java/extensions2` |
+|                  | *System*     | `<BLUEJ_HOME>/BlueJ.app/Contents/Java/extensions2`           |
 | **Unix**         | *User*       | `$HOME/.bluej/extensions2`                                   | 
 |                  | *System*     | `<BLUEJ_HOME>/lib/extensions2`                               |
 | **Windows**      | *User*       | `%USERNAME%\bluej\extensions2`                               | 
